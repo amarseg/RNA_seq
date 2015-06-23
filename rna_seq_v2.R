@@ -20,6 +20,7 @@ unique_exonID <- unique(as.character(elementMetadata(gff.exons)$ID))
 a <- strsplit(unique_exonID, "\\:")
 vector_with_IDs <- sapply(a,"[[",2)
 
+
 #Import list of bam files
 bam.list <- list.files(bam.path, pattern = "bam$", full.names = T)
 bam <- BamFileList(bam.list, index = character(), obeyQname = T)
@@ -53,5 +54,4 @@ if(count_yes){
 }else{
 	save(rpkm_table, file = paste0(output.name, "rpkm.rda"))
 }
-
 
