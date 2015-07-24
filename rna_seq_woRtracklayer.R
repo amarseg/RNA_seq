@@ -31,7 +31,7 @@ if(count_yes){
 	#Construct table with IDs and counts for all the samples 
 	count_table <- cbind(vector_with_ids, assays(se)$counts)
 	count_table <- as.data.frame(count_table)
-	write_table(count_table, file = paste0(output.name, ".txt"), sep = "\t")  
+	write.table(count_table, file = paste0(output.name, ".txt"), sep = "\t")  
 
 }else{
 	save(se, file = paste0(bam.path, output.name,".rda"))
@@ -49,7 +49,7 @@ rpkm_table <- cbind(vector_with_ids, rpkm)
 rpkm_table <- as.data.frame(rpkm_table)
 
 if(count_yes){
-	write_table(rpkm_table, file = paste0(output.name, "rpkm.txt"), sep = "\t")
+	write.table(rpkm_table, file = paste0(output.name, "rpkm.txt"), sep = "\t")
 }else{
 	save(rpkm_table, file = paste0(output.name, "rpkm.rda"))
 }

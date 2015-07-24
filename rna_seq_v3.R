@@ -3,11 +3,20 @@ library("GenomicRanges")
 library("Rsamtools")
 library("GenomicAlignments")
 
-##I PRODUCE DATA THAT DOES NOT CORRELATE VERY WELL WITH SAMS COUNTS
+##Copied from Rsamtools manual, turns the lists of lists into a single list
+.unlist <- function(x)
+{
+	x1 <- x[[1L]]
+	if(is.factor(x1)){
+		structure(unlist(x), class = "factor", levels = levels(x1))
+	}else{
+		do.call(c,x)
+	}
+}
 
 gff.path <- c("C:/Users/am4613/Desktop/am4613/Schizosaccharomyces_pombe.ASM294v2.26.gff3")
 #gff.path <- c("~/annot/Schizosaccharomyces_pombe.ASM294v2.26.gff3")
-bam.path <- c("~/rna_seq0206/seq_0206/")
+bam.path <- c("C:/Users/am4613/Desktop/run_1802/")
 count_yes <- FALSE #Do you want a count table or an rda file
 output.name <- "Transcript_1"
 setwd("~/rna_seq0206/withLTR")
@@ -25,29 +34,53 @@ vector_with_IDs <- sapply(a,"[[",2)
 
 #Import list of bam files
 bam.list <- list.files(bam.path, pattern = "bam$", full.names = T)
-bam <- BamFileList(bam.list, index = character(), obeyQname = T)
+what <- c("rname","strand","pos","qwidth")
+param <- ScanBamParam(what = what)
 
-#Obtain counts. if inter.feature is false, reads that are included in several features are counted for 
-#each one of them. Otherwise they are discarded
-se <- summarizeOverlaps(gff.exons, bam, mode = "Union", inter.feature = F, ignore.strand = F) 
+count_table <- matrix(ncol = length(bam.list) + 1, nrow = length(vector_with_IDs), NA)
+count_table <- as.data.frame(count_table)
+count_table[,1] <- vector_with_IDs
 
-#Find ovelapping features and divide the number of reads by the number of features that span the same region
-n_overlap <- countOverlaps(gff.exons, gff.exons, type = "within")
-counts <- assays(se)$counts/n_overlap 
+for(i in seq(1,length(bam.list)))
+{
+	bam <- scanBam(bam.list[i], param = param)
+	bam <- unname(bam)
+	elts <- setNames(bamWhat(param), bamWhat(param))
+	lst <- lapply(elts, function(elt) .unlist(lapply(bam, "[[", elt)))
+	rm(bam)
+	rm(elts)
+	df.bam <- do.call("data.frame", lst)
+	df.bam[,5] <- df.bam[,3] + df.bam[,4] 
+	df.bam[,1] <- as.character(df.bam[,1])
+	df.bam[which(df.bam$rname == "chr1"),1] <- "I"
+	df.bam[which(df.bam$rname == "chr2"),1] <- "II"
+	df.bam[which(df.bam$rname == "chr3"),1] <- "III"
+	df.bam[which(df.bam$rname == "chr4"),1] <- "MT"
+	df.bam[which(df.bam$rname == "chr5"),1] <- "MTR"
+	df.bam[which(df.bam$rname == "chr6"),1] <- "AB325691"
+	gr.bam <- makeGRangesFromDataFrame(df.bam, start.field = "pos", end.field = "V5", strand.field = "strand", seqnames.field = "rname")
+	overlaps <- findOverlaps(gr.bam, gff.exons, select = "arbitrary", type = "any")
+	count <- table(overlaps)
+	count <- as.data.frame(count)
+	count <- apply(count, MARGIN = c(1,2), as.numeric)
+	count_table[count[,1],i+1] <- count[,2]
+	rm(bam)
+}
+
 
 #counts <- assays(se)$counts[,seq(1,24,2)]
-row.names(counts) <- vector_with_IDs
-ag <- aggregate(counts, FUN = sum, by = list(row.names(counts)))
+agg <- aggregate(count_table[,2:13], FUN = sum, na.rm = T, by = list(count_table[,1]) ) 
+
 
 if(count_yes){
-	#Construct table with IDs and counts for all the samples 
+	#Construct table with IDs and counts for all the samples 0
 	write_table(counts, file = paste0(output.name, ".txt"), sep = "\t")  
 	
 }else{
 	save(se, file = paste0(bam.path, output.name,".rda"))
 }
 
-
+x1
 
 ##FIX ME
 geneLengthsInKB <- width(gff.genes)/1000# Length of exon union per gene in kbp
@@ -62,5 +95,7 @@ if(count_yes){
 }else{
 	save(rpkm_table, file = paste0(output.name, "rpkm.rda"))
 }
+
+
 
 
