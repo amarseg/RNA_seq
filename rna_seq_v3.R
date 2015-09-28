@@ -11,11 +11,6 @@
 	}
 }
 
-gff.path <- c("C:/Users/am4613/Desktop/am4613/Schizosaccharomyces_pombe.ASM294v2.26.gff3")
-#gff.path <- c("~/annot/Schizosaccharomyces_pombe.ASM294v2.26.gff3")
-bam.path <- c("C:/Users/am4613/Desktop/run_1802/test/")
-count_yes <- FALSE #Do you want a count table or an rda file
-
 
 
 
@@ -25,7 +20,7 @@ rna.seq.quant <- function(gff.path, bam.path, count_yes = T)
 	library("GenomicRanges")
 	library("Rsamtools")
 	library("GenomicAlignments")
-	
+	library("utils")	
 	#Import gff and select certain features
 	gff <- import.gff3(gff.path)
 	gff.exons <- gff[which(elementMetadata(gff)[,"type"] == "exon" | elementMetadata(gff)[,"type.1"] == "LTR") ]
@@ -45,6 +40,8 @@ rna.seq.quant <- function(gff.path, bam.path, count_yes = T)
 	count_table <- matrix(ncol = length(bam.list) + 1, nrow = length(vector_with_IDs), NA)
 	count_table <- as.data.frame(count_table)
 	count_table[,1] <- vector_with_IDs
+
+	pb = txtProgressBar(min = 0, max = length(bam.list), initial = 0)
 	
 	for(i in seq(1,length(bam.list)))
 	{
@@ -67,12 +64,12 @@ rna.seq.quant <- function(gff.path, bam.path, count_yes = T)
 			df.bam[which(df.bam$rname == "chr6"),1] <- "AB325691"
 		}
 		gr.bam <- makeGRangesFromDataFrame(df.bam, start.field = "pos", end.field = "V5", strand.field = "strand", seqnames.field = "rname")
-		overlaps <- findOverlaps(gr.bam, gff.exons, select = "arbitrary", type = "within")
+		overlaps <- findOverlaps(gr.bam, gff.exons, select = "arbitrary", type = "any")
 		count <- table(overlaps)
 		count <- as.data.frame(count)
 		count <- apply(count, MARGIN = c(1,2), as.numeric)
 		count_table[count[,1],i+1] <- count[,2]
-
+		setTxtProgressBar(pb, i)
 	}
 	
 	
