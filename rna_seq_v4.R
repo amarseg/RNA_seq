@@ -20,7 +20,7 @@ rna.seq.quant <- function(gff.path, bam.path, count_yes = T)
 	
 	#Import gff and select certain features
 	gff <- import.gff3(gff.path)
-	gff.exons <- gff[which(elementMetadata(gff)[,"type"] == "CDS" | elementMetadata(gff)[,"type.1"] == "LTR" | elementMetadata(gff)[,'type'] == 'ncRNA_gene' | elementMetadata(gff)[,'type'] == 'tRNA' | elementMetadata(gff)[,'type'] == 'rRNA' | elementMetadata(gff)[,'type'] == 'snoRNA')]
+	gff.exons <- gff[which(elementMetadata(gff)[,"type"] == "CDS" | elementMetadata(gff)[,"type.1"] == "LTR" | elementMetadata(gff)[,'type'] == 'ncRNA_gene' | elementMetadata(gff)[,'type'] == 'tRNA_gene' | elementMetadata(gff)[,'type'] == 'rRNA_gene' | elementMetadata(gff)[,'type'] == 'snoRNA_gene' | elementMetadata(gff)[,'type'] == 'snRNA_gene' | elementMetadata(gff)[,'type'] == 'pseudogene')]
 	gff.exons[which(elementMetadata(gff.exons)[,"type.1"] == "LTR")]$ID <- paste0("LTR:", gff.exons[which(elementMetadata(gff.exons)[,"type.1"] == "LTR")]$Name) 
 	exons <- gff.exons[which(elementMetadata(gff.exons)[,"type"] == "CDS")]$ID
 	exons <- substr(exons, 1, nchar(exons) - 6)
