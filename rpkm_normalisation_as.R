@@ -3,7 +3,7 @@ library('gtools')
 library('rtracklayer')
 library('edgeR')
 
-gff.path <- 'C:/Users/am4613/Desktop/am4613/Schizosaccharomyces_pombe.ASM294v2.26.gff3'
+gff.path <- 'C:/Users/am4613/Documents/am4613/Schizosaccharomyces_pombe.ASM294v2.26.gff3'
 
 load('P:/CDC2_RNA_051015.rda')
 
@@ -14,9 +14,7 @@ sam_rpkm[[2]] <- CDC2_2
 sam_rpkm[[3]] <- CDC2_3
 sam_rpkm[[4]] <- CDC2_4
 
-all_counts <- read.delim("C:/Users/am4613/Desktop/all_rev_counts.txt", header= T, strings = F)
-
-all_counts <- read.delim("C:/Users/am4613/Desktop/all_rev_counts.txt", header= T, strings = F)
+all_counts <- read.delim("C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/all_rev_counts.txt", header= T, strings = F)
 row.names(all_counts) <- all_counts[,1]
 all_counts <- all_counts[,2:37]
 all_counts <- all_counts[,mixedorder(colnames(all_counts))]
@@ -55,3 +53,4 @@ for(i in 1:3)
 
 
 plot(merged_rpkm[[1]][,2], merged_rpkm[[1]][,14], log = 'xy')
+
