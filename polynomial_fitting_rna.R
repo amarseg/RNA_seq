@@ -1,7 +1,7 @@
 library('locfit')
 library('rootSolve')
 library('plyr')
-library('cvTools')
+
 library('polynom')
 
 load('P:/CDC2_RNA_051015.rda')
