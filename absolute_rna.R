@@ -73,13 +73,9 @@ var_fq <- aggregate(Spots ~ Acession, fq_data, var)
 
 avg_rpkm <- rpkm[,1:12]
 
-norm_rpkm <- normalise_rna(rpkm)
-avg_norm_rpkm <- norm_rpkm[,1:12]
-
 for(i in 1:12)
 {
 	avg_rpkm[,i] <- apply(rpkm[,seq(i,i+33,12)], 1, mean)
-	avg_norm_rpkm[,i] <- apply(norm_rpkm[,seq(i,i+33,12)],1,mean)
 }
 	
 avg_rpkm_probes <- merge(avg_rpkm, avg_fq, by.x = 'row.names', by.y = 'Acession', all.y = T)
@@ -89,10 +85,12 @@ intercept <- coefficients(fit)[[1]]
 slope <- coefficients(fit)[[2]]
 avg_cpc <- avg_rpkm
 
+avg_norm_rpkm <- avg_rpkm/avg_rpkm[,1]
+
 avg_cpc[,1] <- log2(avg_rpkm[,1])/intercept
 avg_cpc[,1] <- 2^avg_cpc[,1]
 
-avg_cpc[,2:12] <- 2^(avg_norm_rpkm[,2:12])*avg_cpc[,1]*avg_cell$fold_change[2:12]
+avg_cpc[,2:12] <- avg_norm_rpkm[,2:12]*avg_cpc[,1]*avg_cell$fold_change[2:12]
 
 boxplot(log2(avg_cpc), outline = F)
 log_cpc <- avg_cpc[which(rowSums(avg_cpc) > 0),]
@@ -100,3 +98,6 @@ log_cpc <- avg_cpc[which(rowSums(avg_cpc) > 0),]
 oneDplot(df2list(log_cpc), log  = T, spread = 200, breaks = 50, ylim = c(-5,10), col = 'darkgreen')
 write.table(avg_cpc,'C:/Users/am4613/Documents/Summaries_as_timecourses/rna_cpc.txt', sep = '\t')
 
+plot(log2(avg_cpc[,1]), log2(avg_cpc[,12]))
+nc_rna <- avg_cpc[grep(row.names(avg_cpc), pattern = 'SPNC'),]
+points(log2(nc_rna[,1]), log2(nc_rna[,12]), col = 'green')

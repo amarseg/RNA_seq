@@ -1,0 +1,113 @@
+---
+title: "Clustering of transcript data"
+author: "Amalia MS"
+date: "Wednesday, January 27, 2016"
+output: html_document
+---
+
+
+```{r, echo = FALSE, include= FALSE}
+library('Mfuzz')
+library('matrixStats')
+source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
+rpkm <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/me_rpkm.txt', header = T, strings = F)
+
+avg_rpkm <- median_rna(rpkm)
+
+eset <- ExpressionSet(as.matrix(avg_rpkm))
+
+eset.r <- filter.NA(eset,0.5) #Threshold for discarding missing data 
+eset.f <- fill.NA(eset.r, mode = 'mean') #Fill the gaps with the mean of the other values
+
+tmp <- filter.std(eset.f, min.std = 0)
+
+eset.s <- standardise(tmp)
+
+m_fuzz <- mestimate(eset.s)
+
+norm_rpkm <- normalise_rna(rpkm)
+avg_norm_rpkm <- median_rna(norm_rpkm)
+
+cluster_plotting <- function(cl, mfrow, data, ylim)
+	{
+		par(mfrow = mfrow)
+		n_cl <- max(cl$cluster)
+		f_cluster <- list()
+		for(i in seq(1,n_cl))
+			{
+				id_cl <- names(cl$cluster[cl$cluster == i])
+				data_cl <- data[which(row.names(data) %in% id_cl),]
+				median_cl <- apply(data_cl, 2, mean)
+				matplot(t(data_cl), type = 'l', ylim = ylim, lwd = 1, col = 'grey', pch = 1)	
+				lines(median_cl, type = 'l', lwd = 3)
+			}
+	}
+```
+
+I am using fuzzy clustering (c- means fuzzy clustering) to cluster the RNA-seq data (median of the three biological replicates). This document shows different parameters of clustering and tries to work out the ones that give better results. In fuzzy clustering, every point has a degree of belonging to clusters, as in fuzzy logic, rather than belonging completely to just one cluster. Thus, points on the edge of a cluster, may be in the cluster to a lesser degree than points in the center of cluster.The algorithm minimizes intra-cluster variance as well, but has the same problems as k-means; the minimum is a local minimum, and the results depend on the initial choice of weights. Source: [link] (https://en.wikipedia.org/wiki/Fuzzy_clustering)
+
+This algorithm needs two parameters to work, the number of clusters (k) and the fuzzifier (m). m determines the level of cluster fuzzines. For example, a large m results in smaller memberships and hence, fuzzier clusters. When m = 1, the partitioning will be absolute, producing an standard k-means clustering. 
+
+There is a method for estimating m from the dataset described in Schwammle et al. 2010 and is also implemented in the Mfuzz package. This method will be used throuhout this analysis otherwise stated. 
+
+#### k = 5
+
+Plot clusters using the standardisation included in the algorithm (mean value of zero and standard deviation of one)
+```{r, echo=FALSE}
+n_cl = 5 
+mfrow = c(2,2)
+ylim = c(-3,3)
+cl <- mfuzz(eset.s, c = n_cl, m = m_fuzz)
+mfuzz.plot(eset.s, cl = cl, mfrow = mfrow, min.mem = 0.7, colo = rainbow(n=10), new.window = FALSE)
+```
+
+Plotting average fold_change in expression for the clusters reported
+```{r, echo = FALSE}
+cluster_plotting(cl, mfrow, avg_norm_rpkm, ylim = ylim)
+```
+
+#### k = 9
+
+Plot clusters using the standardisation included in the algorithm
+```{r, echo=FALSE}
+n_cl = 9 
+mfrow = c(2,2)
+
+cl <- mfuzz(eset.s, c = n_cl, m = m_fuzz)
+mfuzz.plot(eset.s, cl = cl, mfrow = mfrow, min.mem = 0.7, colo = rainbow(n=10), new.window = FALSE)
+```
+
+Plotting average fold_change in expression for the clusters reported
+```{r, echo = FALSE}
+cluster_plotting(cl, mfrow, avg_norm_rpkm, ylim = ylim)
+```
+
+#### k = 15
+Plot clusters using the standardisation included in the algorithm
+```{r, echo=FALSE}
+n_cl = 15 
+mfrow = c(2,2)
+
+cl <- mfuzz(eset.s, c = n_cl, m = m_fuzz)
+mfuzz.plot(eset.s, cl = cl, mfrow = mfrow, min.mem = 0.7, colo = rainbow(n=10), new.window = FALSE)
+```
+
+Plotting average fold_change in expression for the clusters reported
+```{r, echo = FALSE}
+cluster_plotting(cl, mfrow, avg_norm_rpkm, ylim = ylim)
+```
+
+#### k = 20
+Plot clusters using the standardisation included in the algorithm
+```{r, echo=FALSE}
+n_cl = 20 
+mfrow = c(2,2)
+
+cl <- mfuzz(eset.s, c = n_cl, m = m_fuzz)
+mfuzz.plot(eset.s, cl = cl, mfrow = mfrow, min.mem = 0.7, colo = rainbow(n=10), new.window = FALSE)
+```
+
+Plotting average fold_change in expression for the clusters reported
+```{r, echo = FALSE}
+cluster_plotting(cl, mfrow, avg_norm_rpkm, ylim = ylim)
+```

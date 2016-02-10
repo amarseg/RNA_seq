@@ -1,0 +1,148 @@
+---
+title: "Sam's paper"
+author: "Amalia MS"
+date: "Monday, January 25, 2016"
+output: html_document
+--- 
+
+This document aims to reproduce the figures from Marguerat et al. 2012, but using the absolute data acquired by myself in 2014-2015. Data comes from a time course experiment done with the strain cdc2-M17as, sensitive to 1NM-PP1. When exposed to the chemical, cells arrest in G2 and grow in size until they reach a limit at around 10 hours. RNA and protein data were produced for samples taken at every hour for 11 hours of exporse to 1NM-PP1.
+
+Quantitative mass-spectrometry was used to obtain the proteome-wide data. Samples had heavy standards spiked in, that combined with protein per cell measurements, produce copies per cell. Transcriptomics data comes from RNA-seq. calibrated to absolute copies using smFISH measurements. smFISH measurements were only taken for cells at time point zero (before the induction) for logistic reasons. RNA-seq reads were calibrated for this time point and then scaled up for the following(check absolute_rna.r) 
+
+```{r, echo = FALSE, results='hide'}
+source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
+source('C:/Users/am4613/Documents/GitHub/Misc/oneDplot.v2.r')
+
+prot_cpc <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/cpc_proteins.txt', header = T, strings = F)
+
+rna_cpc <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rna_cpc.txt', header = T, strings = F)
+
+library(fields)
+```
+
+# Figure 1.- Distribution of transcriptome along the time course (in log2 space). 
+
+
+```{r, echo = FALSE}
+
+fcol <- colorRampPalette(c('red','blue'))
+col <- fcol(12)
+plot(density(log2(rna_cpc[,1]),na.rm = T), col = col[1], xlim = c(-2,8), main = 'Distribution mRNA')
+for(i in 2:12)
+	{
+		lines(density(log2(rna_cpc[,i]),na.rm = T), col = col[i])
+	}
+
+colorbar.plot(-0.5,0.5, col = col, strip = c(0:11), horizontal = F)
+
+
+viability <- read.delim('C:/Users/am4613/Documents/FYPOviability.tsv', strings =F, header = F)
+viability[,1] <- substr(viability[,1], start = 1, stop = nchar(viability[,1]) - 2)
+viable_genes <- viability[viability[,2] == 'inviable',]
+
+rna_cpc <- rna_cpc + 0.000001
+oneDplot(df2list(rna_cpc), log  = T, spread = 200, breaks = 50, ylim = c(-2,10), col = 'lightblue', main = 'Distribution of essential genes in transcriptome')
+
+via_rna_cpc <- rna_cpc[which(row.names(rna_cpc) %in% viable_genes[,1]),]
+oneDplot(df2list(via_rna_cpc), log  = T, spread = 30, breaks = 50, ylim = c(-2,10), col = 'darkred', add = T)
+
+```
+
+***
+
+# Figure 4.- Quantitative analysis of long non conding RNAs
+
+```{r, echo = FALSE}
+
+nc_rna <- rna_cpc[grep(row.names(rna_cpc),pattern = 'SPNCRNA'),]
+
+
+for(i in 1:12)
+	{
+		oneDplot(list(rna_cpc[,i], nc_rna[,i]), spread = 250, breaks = 70, col = c('lightblue','darkred'), ylim = c(-2,10), main = paste0('Time point ',i))
+		abline(median(log2(rna_cpc[,i]), na.rm = T),0,col ='lightblue')
+		abline(median(log2(nc_rna[,i]), na.rm = T),0,col = 'darkred')
+}
+```
+
+***
+
+# Figure 5A .- Density plot of proteins and mRNA together
+```{r, echo= FALSE}
+for(i in 1:12)
+	{
+		plot(density(log2(rna_cpc[,i]),na.rm = T), col = 'lightblue', lwd = 3, xlim = c(-1,35), main = paste0('Time point: ',i))
+		lines(density(prot_cpc[,i],na.rm = T), col = 'darkred', lwd = 3)
+		text(25,0.30,'mRNA', col = 'lightblue')
+		text(25,0.25,'Protein', col = 'darkred')
+	}
+```
+
+***
+
+# Figure 5B.- Proteins seen in the proteome dataset are among the most expressed in the transcriptome
+```{r,echo = FALSE}
+oneDplot(df2list(rna_cpc), log  = T, spread = 200, breaks = 50, ylim = c(-5,10), col = 'lightblue')
+
+rna_en_prot <- rna_cpc[which(row.names(rna_cpc) %in% row.names(prot_cpc)),]
+oneDplot(df2list(rna_en_prot), log  = T, spread = 75, breaks = 50, ylim = c(-5,10), col = 'darkred', add = T)
+```
+
+***
+
+# Figure 5C.- Protein versus mRNA abundance
+```{r, echo = FALSE}
+log_rna <- log2(rna_cpc)
+log_prot <- prot_cpc
+
+merg <- merge(log_rna, log_prot, by = 'row.names', all.y = T)
+
+for(i in 2:13)
+	{
+		plot(merg[,i], merg[,i+12], xlab = 'Log2 mRNA', ylab = 'Log2 Protein', col = 'grey', xlim = c(0,10),ylim = c(0,35), main = paste0('Time point ',i-1))
+		round_corr <- round(cor(merg[,i],merg[,i+12]),2)
+		text(paste0('R: ', round_corr) , x = 0.5, y = 32)
+	}
+```
+
+***
+
+# Figure 5D.- Protein/mRNA ratio versus protein abundance. Ribosomes are the red dots 
+```{r, echo = FALSE}
+ratio_protein_mrna <- merg[,14:25] - merg[,2:13]
+row.names(ratio_protein_mrna) <- merg[,1]
+
+ribo_list <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/ribosomal_proteins', header = T, strings = F)
+ribo_list <- ribo_list$ensembl_id
+
+ribo_ratio <- ratio_protein_mrna[which(row.names(ratio_protein_mrna) %in% ribo_list), ]
+ribo_prot <- merg[which(merg[,1] %in% ribo_list),]
+
+for(i in 1:12)
+	{
+		plot(y = ratio_protein_mrna[,i], x = merg[,13+i], col = 'grey', xlab = 'Log2 protein copies per cell', ylab = 'Log2 protein/mRNA copies per cell', main = paste0('Time point ',i))
+		points(y = ribo_ratio[,i], x = ribo_prot[,13+i], col = 'red')
+	}
+```
+
+***
+
+# Figure 6B.- Comparison between different timepoints in terms of proteins
+```{r, echo = FALSE}
+for(i in 2:12)
+	{
+	 	plot(x = log_prot[,1], y = log_prot[,i], xlab = 'Log2 protein copies per cell at time point 0', ylab = paste0('Log2 protein copies per cell at time point ',i - 1))
+	 	abline(0,1, col = 'red')
+	}
+```
+
+***
+
+# Figure 6B (cont) .-  Comparison between different timepoints in terms of mRNA
+```{r, echo = F}
+for(i in 2:12)
+	{
+	 	plot(x = log_rna[,1], y = log_rna[,i], xlab = 'Log2 protein copies per cell at time point 0', ylab = paste0('Log2 protein copies per cell at time point ',i - 1))
+	 	abline(0,1, col = 'red')
+	}
+```

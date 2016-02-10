@@ -57,9 +57,9 @@ for(i in 1:n_cl)
 	results_go[[i]] <- temp[temp[,2] <= p,]
 }
 
-output_final <- data.frame(Reduce(rbind,results_go))
-write.table(output_final, 'C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/tableGO_fuzzy_rna.txt', sep = '\t')
-save(f_clusters, file = 'C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/transcript_clusters.rda')
+#output_final <- data.frame(Reduce(rbind,results_go))
+#write.table(output_final, 'C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/tableGO_fuzzy_rna.txt', sep = '\t')
+#save(f_clusters, file = 'C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/transcript_clusters.rda')
 
 
 median_trajectories <- as.data.frame(matrix(nrow = n_cl, ncol = 12, NA))
