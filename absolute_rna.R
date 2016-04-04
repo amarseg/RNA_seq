@@ -1,5 +1,6 @@
 ##Absolute RNA counts
 ##Assuming rRNA percentage is constant!!! (this might change after experiments)
+rm(list = ls())
 source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
 source('C:/Users/am4613/Documents/GitHub/Misc/oneDplot.v4.r')
 

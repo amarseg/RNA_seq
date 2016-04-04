@@ -1,20 +1,21 @@
 ##EBseq-HMM
 
-library('betr')
-library(maSigPro)
-library(gtools)
-library(DESeq2)
-library(edgeR)
-source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
-library(gplots)
-library(Biobase)
+# library('betr')
+# library(maSigPro)
+# library(gtools)
+# library(DESeq2)
+# library(edgeR)
+# source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
+# library(gplots)
+# library(Biobase)
+library('EBSeqHMM')
 
 low_exp_cutoff <- 10 
 
 all_counts <- read.delim("C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/all_rev_counts.txt", header= T, strings = F)
 row.names(all_counts) <- all_counts$ID
 all_counts <- all_counts[,2:37]
-all_counts <- all_counts[,mixedorder(colnames(all_counts))]
+#all_counts <- all_counts[,mixedorder(colnames(all_counts))]
 
 
 ##Remove genes with little reads in all samples

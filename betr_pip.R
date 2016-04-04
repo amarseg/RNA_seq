@@ -1,3 +1,4 @@
+rm(list = ls())
 library('betr')
 library(maSigPro)
 library(gtools)
@@ -6,6 +7,11 @@ library(edgeR)
 source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
 library(gplots)
 library(Biobase)
+setwd('C:/Users/am4613/Documents/Summaries_as_timecourses/betr_clustering/DESeq_norm/')
+load('C:/Users/am4613/Documents/GitHub/Misc/GO.analysis.110914.rda')
+source('C:/Users/am4613/Documents/GitHub/Misc/gene_plotter.R')
+
+rpkm = F
 
 low_exp_cutoff <- 10 
 
@@ -31,7 +37,6 @@ cds <- DESeqDataSetFromMatrix(countData = all_counts, colData = exp_design, desi
 cds <- estimateSizeFactors(cds)
 size_fact <- sizeFactors(cds)
 
-vsd <- varianceStabilizingTransformation(cds)
 norm_counts <- all_counts
 
 for(i in 1:36)
@@ -52,12 +57,46 @@ sig_level <- 0.99
 
 de_betr <- prob[prob > sig_level]
 
+write.table(de_betr, 'C:/Users/am4613/Documents/Summaries_as_timecourses/DE_genes/result_betr.txt', sep = '\t')
+
 ##See how DE genes look in the data
-rpkms <- read.delim("C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/me_rpkm.txt", header= T, strings = F)
-norm_rpkm <- normalise_rna(rpkms)
+if(rpkm == T)
+{
+	rpkms <- read.delim("C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/me_rpkm.txt", header= T, strings = F)
+	norm_rpkm <- normalise_rna(rpkms)
+}else{
+	norm_rpkm <- reorder_proteomics(norm_counts)
+	norm_rpkm <- normalise_rna(norm_rpkm)
+}
 
 de_rpkm <- norm_rpkm[row.names(norm_rpkm) %in% names(de_betr),]
 
 cols <- colorRampPalette(c('blue','gray','yellow'))
 
 heatmap.2(as.matrix(de_rpkm), col = cols, Colv = F, trace = 'none')
+
+hc.rows <- hclust(dist(de_rpkm))
+plot(hc.rows)
+
+k = 2
+
+rect.hclust(hc.rows,k)
+
+clusters<- cutree(hc.rows, k = k)
+
+pval = 0.05
+
+pdf(file  = 'results_betr_deseq.pdf')
+for(i in 1:k)
+{
+	cl <- names(clusters[clusters == i])
+	write.table(cl, file = paste0('Cluster_',i,'.txt'), sep = '\t')
+	
+	go_results <- GOanalysis(cl, GOtable, all = 7102)
+	go_results <- go_results[go_results[,2] > pval, ]
+	write.table(go_results, file = paste0('GO_cluster',i,'.txt'), sep = '\t')
+	
+	gene_plotter(cl, what = 'RNA', norm = 'DESeq')
+}
+dev.off()
+
