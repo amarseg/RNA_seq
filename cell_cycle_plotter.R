@@ -25,7 +25,7 @@ cell_cycle_plotter <- function(ids, average = T, ylim = c(-2,2))
 			ids_levels <- exp_levels[which(exp_levels$identifier %in% ids),]
 			ids_levels[,4:ncol(ids_levels)] <- apply(ids_levels[,4:ncol(ids_levels)],c(1,2),as.numeric)
 			avg_levels <- colMeans(ids_levels[,4:ncol(ids_levels)], na.rm = T)
-			lines(y = avg_levels, x = time_levels, col = col[i], fill = T, lty = i)
+			lines(y = avg_levels, x = time_levels, col = col[i], fill = T, lty = i, lwd = 3)
 		}
 		
 		legend('topleft', legend = exp_name, fill = col, cex = 0.75, ncol = 4)
@@ -46,3 +46,26 @@ cell_cycle_plotter <- function(ids, average = T, ylim = c(-2,2))
 		par(mfrow = c(1,1))
 	}
 }
+
+cell_cycle_heatmap <- function(ids)
+{
+	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/cell_cycle_data.rda')
+	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/exp_time.rda')
+	peak_times <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/Peaktimes all genes.txt', header= T, strings = F)
+	library(gplots)
+	
+	rustici_elu <- merge(exp_list[[8]][,c(-1,-2)], exp_list[[9]][,c(-1,-2)], by = 'identifier', all = T)
+	rustici_elu <- merge(rustici_elu, exp_list[[10]][,c(-1,-2)], by = 'identifier', all = T)
+	rustici_elu <- merge(rustici_elu, peak_times, by.x = 'identifier', by.y = 'Gene.ID')
+	
+	
+	rustici_elu[,-1] <- apply(rustici_elu[,-1], c(1,2), as.numeric)
+	
+	col = colorRampPalette(c('blue','gray','yellow'))
+	
+	test <- rustici_elu[which(ids %in% rustici_elu$identifier),]
+	ordered_test <- test[order(test$Peak),]
+	heatmap.2(as.matrix(na.omit(ordered_test[,2:61])), Colv = F, trace = 'none', col = col, labRow = ordered_test$identifier, Rowv = F)
+}
+
+

@@ -1,0 +1,138 @@
+
+  RNA copies per cell
+
+
+        /Amalia MS/
+
+
+        /Tuesday, April 19, 2016/
+
+After fixing my stupid mistake multiplying and using DESeq normalised
+reads, it seems the copies per cell of RNA molecules looks reasonable.
+I’m using the linear regression of fitting al the biological replicates
+at the same time.
+
+|## Warning: package 'reshape2' was built under R version 3.2.5|
+
+|## Warning: package 'Rcpp' was built under R version 3.2.4|
+
+|## Warning: package 'RcppArmadillo' was built under R version 3.2.4|
+
+|## Warning: package 'gplots' was built under R version 3.2.4|
+
+
+        Scatterplot comparing my data with the one published in
+        Marguerat et al. 2012. Why is it so weird?
+
+
+          Is it weird because of the calibration or because of the rpkms
+          themselves?
+
+
+        There are some guys that seem to be weirdly correlated in the
+        plot before, who are those guys?
+
+
+        Comparing distributions of both datasets (my data in red). Bear
+        in mind that there are more total mRNA in Sam’s dataset (rRNA
+        not represented in our data?)
+
+
+        Comparing all time points between each other. It seems the
+        increase is more or less coordinated between time points.
+
+|plot(log2(all_data$rev_tp0_sho1.bam), log2(all_data$rev_tp11_sho1.bam))
+abline(0,1,col = 'grey')|
+
+|data <- log2(all_data[,2:13])
+
+#Melt puts all the columns of the dataframe in one, with the colname as variable
+m_data <- melt(data)|
+
+|## No id variables; using all as measure variables|
+
+|ggplot(m_data, aes(x = value, fill = variable)) + geom_density(alpha = 0.5)|
+
+|## Warning: Removed 3520 rows containing non-finite values (stat_density).|
+
+
+        Heatmap of the data. Log2 and time point zero normalised
+
+|## Warning in heatmap.2(as.matrix(log2(norm_cpc)), col = col, Colv = F):
+## Discrepancy: Colv is FALSE, while dendrogram is `both'. Omitting column
+## dendogram.|
+
+
+        Fit third, second and firt degree polynomials to all the data,
+        choosing the best one, try to find factors whose first or second
+        derivative are different than average.
+
+|time = c(0:11)
+
+data <- all_data[,2:13]
+
+best_model <- list()
+
+##Get the best model for every gene, choosing according to adjusted r squared
+
+for(i in 1:nrow(data))
+{
+    test <- cbind(t(data[i,]),time)
+    colnames(test) <- c('gene','time')
+    test <- as.data.frame(test)
+    poly1 <- lm(test$gene ~ poly(test$time,1,raw=TRUE))
+    poly2 <- lm(test$gene ~ poly(test$time,2,raw=TRUE))
+    poly3 <- lm(test$gene ~ poly(test$time,3,raw=TRUE))
+    
+    adj_r_squared <- c(summary(poly1)$adj.r.squared,summary(poly2)$adj.r.squared,summary(poly3)$adj.r.squared)
+    pos <- which(adj_r_squared == max(adj_r_squared))
+    
+    #There are genes that have models with same r squared, we pick the simplest one
+    if(length(pos) > 1)
+        {
+            pos = min(pos)
+        }
+    
+    
+    if(pos == 1)
+    {
+        best_model[[i]] <- poly1
+    }else if(pos == 2)
+    {
+        best_model[[i]] <- poly2
+    }else if (pos == 3)
+    {
+        best_model[[i]] <- poly3
+    }
+}
+
+#Get coefficients from model and remove NA
+poly_coeff <- lapply(best_model, coefficients)
+poly_coeff <- rapply(poly_coeff, f=function(x) ifelse(is.na(x),0,x), how="replace")
+
+#Convert those coefficients to polynomials
+poly_model <- lapply(poly_coeff, polynomial)
+
+#First derivative and finding its solutions
+first_deriv <- lapply(poly_model, deriv)
+first_sol <- lapply(lapply(first_deriv,polyroot),Re)
+first_sol <- ldply(first_sol, rbind)
+row.names(first_sol) <- all_data$Row.names
+
+hist(melt(first_sol)$value, breaks = 100)|
+
+|## No id variables; using all as measure variables|
+
+|#Second derivative
+second_deriv <- lapply(first_deriv, deriv)
+second_sol <- lapply(lapply(second_deriv,polyroot),Re)
+second_sol <- ldply(second_sol, rbind)
+row.names(second_sol) <- all_data$Row.names
+
+hist(melt(second_sol)$value, breaks = 100)|
+
+|## No id variables; using all as measure variables|
+
+|solutions_table <- data.frame(row.names = row.names(first_sol), first_derivative_sol1 = first_sol[,1],
+                                                            first_derivative_sol2 = first_sol[,2], second_derivative = second_sol[,1])|
+

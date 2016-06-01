@@ -18,7 +18,7 @@ if(protein)
 	avg_data <- median_rna(norm_data)
 	avg_norm_data <- median_rna(norm_data)
 }else{
-	abs_data <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rna_cpc.txt',
+	abs_data <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rna_copies_per_cell.txt',
 										 header = T, strings = F)
 	data <- read.delim('analysis/me_rpkm.txt', header = T)
 	norm_data <- normalise_rna(data)
@@ -92,23 +92,26 @@ gene_list[which(gene_list$gene_name %in% metabolism$ensembl_id), 2] <- 'metaboli
 
 
 
-##Constant fraction
-sd_cutoff <- 2
+# ##Constant fraction
+# sd_cutoff <- 2
+# 
+# gene_list$StandardDeviation <- apply(norm_data, 1, sd)
+# 
+# for(i in 1:nrow(gene_list))
+# {
+# 	if(gene_list[i,]$StandardDeviation <= sd_cutoff & is.na(gene_list[i,]$annotation))
+# 	{
+# 		gene_list[i,]$annotation <- c('Constant')
+# 	}
+# }
+# ##Not included in the analysis
+# 
+# 
+# gene_list[which(is.na(gene_list$annotation)),]$annotation <- 'NotIncluded'
 
-gene_list$StandardDeviation <- apply(norm_data, 1, sd)
-
-for(i in 1:nrow(gene_list))
-{
-	if(gene_list[i,]$StandardDeviation <= sd_cutoff & is.na(gene_list[i,]$annotation))
-	{
-		gene_list[i,]$annotation <- c('Constant')
-	}
-}
-##Not included in the analysis
 
 
-gene_list[which(is.na(gene_list$annotation)),]$annotation <- 'NotIncluded'
-
+gene_list[is.na(gene_list$annotation),]$annotation <- 'Constant'
 
 ##Check which genes affect more the median of the data
 
@@ -133,7 +136,7 @@ agg[,2:13] <- apply(agg[,2:13],2, as.numeric)
 col = rainbow(7)
 
 par(mfrow = c(1,2))
-plot(y = agg[1,2:13], x = rep(0:11),type = 'l',  col = col[1], ylim = c(-1,1.5), cex = 0.6)
+plot(y = agg[1,2:13], x = rep(0:11),type = 'l',  col = col[1], ylim = c(-0.75,1), cex = 0.6)
 for(i in 2:nrow(agg))
 {
 	lines(y = agg[i,2:13], x = rep(0:11), col = col[i])
@@ -159,7 +162,7 @@ for(i in 2:nrow(agg))
 	
 }
 
-#legend('topleft',legend = agg[,1], col = col, fill = col, cex = 0.6)
+legend('topleft',legend = agg[,1], col = col, fill = col)
 
 ##Check how median profiles are affected by different genes
 

@@ -5,7 +5,7 @@ library('Mfuzz')
 library('matrixStats')
 load('C:/Users/am4613/Documents/GitHub/Misc/GO.analysis.110914.rda')
 
-cpc_protein <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/cpc_proteins.txt', header = T, strings = F)
+cpc_protein <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/rep_cpc.txt', header = T, strings = F)
 cpc_protein_exp <- 2^cpc_protein
 
 eset <- ExpressionSet(as.matrix(cpc_protein))
@@ -16,7 +16,7 @@ eset.f <- fill.NA(eset.r, mode = 'mean') #Fill the gaps with the mean of the oth
 tmp <- filter.std(eset.f, min.std = 0)
 
 eset.s <- standardise(tmp) #Data with average zero and sd = 1, so samples with similar changes are close, despite differeces in expression levels
-n_cl = 9
+n_cl = 4
 m_fuzzy = mestimate(eset.s)
 cl <- mfuzz(eset.s, c = n_cl, m = m_fuzzy)
 mfuzz.plot(eset.s, cl = cl, mfrow = c(3,3), min.mem = 0.7, colo = rainbow(n=10))

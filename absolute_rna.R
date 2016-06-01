@@ -3,7 +3,9 @@
 rm(list = ls())
 source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
 source('C:/Users/am4613/Documents/GitHub/Misc/oneDplot.v4.r')
-
+library('DESeq2')
+setwd('C:/Users/am4613/Documents/Summaries_as_timecourses/')
+library('gtools')
 #Load FISH data
 fq_data <- read.delim('C:/Users/am4613/Documents/FISH_QUANT/Results_mature/Collated_results/results_FQ.txt', header = T, strings = F)
 agg <- aggregate(Spots ~ Sample_Name*Acession, fq_data, mean)
@@ -29,8 +31,31 @@ rna_per_cell$cells <- rna_per_cell$Starting_RNA/rna_per_cell$RNA_per_cell
 # # 
 # rpkm <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/me_rpkm.txt', header = T, strings = F)
 # 
-rpkm <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rpk_me.txt', header = T, strings = F)
-rpkm <- rpkm*1000
+#rpkm <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rpk_me.txt', header = T, strings = F)
+#rpkm <- rpkm*1000
+#rpkm <- reorder_proteomics(rpkm)
+
+all_counts <- read.delim('analysis/all_rev_counts.txt', header = T, strings = F)
+row.names(all_counts) <- all_counts$ID
+all_counts <- all_counts[,2:ncol(all_counts)]
+all_counts <- all_counts[,mixedorder(colnames(all_counts))]
+
+exp_design = data.frame(Time = factor(rep(0:11)), 
+												Replicate = rep(1:3,12), 
+												group = rep(1,ncol(all_counts)),
+												row.names = colnames(all_counts))
+
+cds <- DESeqDataSetFromMatrix(countData = all_counts, colData = exp_design, design = ~Time)
+cds <- estimateSizeFactors(cds)
+size_fact <- sizeFactors(cds)
+
+rpkm <- all_counts
+
+for(i in 1:36)
+{
+	rpkm[,i] <- all_counts[,i]/size_fact[i]
+}
+
 rpkm <- reorder_proteomics(rpkm)
 
 ##This bit of the code does the calibration for the replicates separately
@@ -102,3 +127,44 @@ write.table(avg_cpc,'C:/Users/am4613/Documents/Summaries_as_timecourses/rna_cpc.
 plot(log2(avg_cpc[,1]), log2(avg_cpc[,12]))
 nc_rna <- avg_cpc[grep(row.names(avg_cpc), pattern = 'SPNC'),]
 points(log2(nc_rna[,1]), log2(nc_rna[,12]), col = 'green')
+
+
+##Fit all the points at the same time
+
+meh <- c(1:36)
+
+toDo <- merge(rpkm_probes, agg, by.x = 'row.names', by.y = 'Acession', all.y = T)
+for(i in seq(1,34,3))
+{
+	meh[seq(i,i+2)] <- as.numeric(toDo[i,2:4])
+}
+
+agg$rpkm <- meh
+
+fit <- lm(agg$rpkm ~ 0 +agg$Spots)
+plot(x = agg$Spots, y = agg$rpkm, xlab = 'Average number of FISH counts', ylab = 'DESeq normalised expression data')
+abline(fit)
+corrs <- round(summary(fit)$r.squared,3)
+legend('topleft', legend = paste0('R squared: ', corrs))
+corrs[i] <- summary(fit)$r.squared
+
+new_slope <- coefficients(fit)
+
+new_cpc <- avg_rpkm
+new_cpc[,1] <- avg_rpkm[,1]/new_slope
+#new_cpc[,1] <- 2^new_cpc[,1]
+
+new_cpc[,2:12] <- new_cpc[,1]*avg_norm_rpkm[,2:12]
+
+for(i in 2:12)
+{
+	new_cpc[,i] <- new_cpc[,i]*avg_cell$fold_change[i]
+}
+
+col = colorRampPalette(c('white', 'darkgray'))
+boxplot(new_cpc, outline = F, ylab = 'RNA copies per cell', col = col(12))
+
+
+write.table(new_cpc,'rna_copies_per_cell.txt', sep ='\t')
+
+
