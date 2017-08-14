@@ -2,9 +2,14 @@
 ###Generates a lists of genes with their pertenence to the different fractions in the 
 ###modelling based on Andrea's paper
 rm(list = ls())
-setwd('C:/Users/am4613/Documents/Summaries_as_timecourses/')
-source('../GitHub/Proteomics/normalise_script.R')
-source('../GitHub/Misc/loov.r')
+library(ggplot2)
+library(reshape2)
+library(plyr)
+library(DESeq2)
+library(plyr)
+setwd('C:/Users/am4613/OneDrive/Summaries_as_timecourses/')
+source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
+source('C:/Users/am4613/Documents/GitHub/Misc/loov.r')
 protein = T
 if(protein)
 {
@@ -18,11 +23,30 @@ if(protein)
 	avg_data <- median_rna(norm_data)
 	avg_norm_data <- median_rna(norm_data)
 }else{
-	abs_data <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rna_copies_per_cell.txt',
+	abs_data <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/rna_copies_per_cell.txt',
 										 header = T, strings = F)
-	data <- read.delim('analysis/me_rpkm.txt', header = T)
-	norm_data <- normalise_rna(data)
-	avg_data <- median_rna(data)
+	all_counts <- read.delim("C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/all_rev_counts.txt", header= T, strings = F)
+	row.names(all_counts) <- all_counts$ID
+	all_counts <- all_counts[,2:37]
+	all_counts <- all_counts[,mixedorder(colnames(all_counts))]
+	
+	exp_design = data.frame(Time = factor(rep(0:11,each = 3)), 
+													Replicate = rep(1:3,12), 
+													group = rep(1,ncol(all_counts)),
+													row.names = colnames(all_counts))
+	
+	cds <- DESeqDataSetFromMatrix(countData = all_counts, colData = exp_design, design = ~Time)
+	cds <- estimateSizeFactors(cds)
+	size_fact <- sizeFactors(cds)
+	
+	norm_counts <- all_counts
+	
+	for(i in 1:36)
+	{
+		norm_counts[,i] <- all_counts[,i]/size_fact[i]
+	}
+	norm_counts <- reorder_proteomics(norm_counts)
+	norm_data <- normalise_rna(norm_counts)
 	avg_norm_data <- median_rna(norm_data)
 }
 
@@ -35,18 +59,18 @@ gene_list <- data.frame(gene_name = row.names(norm_data), annotation = NA)
 
 ##Annotate ribosomes
 
-ribo_id <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/rproteins.txt', 
+ribo_id <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/rproteins.txt', 
 											header = T, strings = F)
 
 gene_list[which(gene_list$gene_name %in% ribo_id$Sp_name), 2] <- 'ribosome'
 
 ##Annotate polymerases
 
-poly1 <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/polymerase1', 
+poly1 <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/polymerase1', 
 											header = T, strings = F)
-pol2 <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/polymerase2', 
+pol2 <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/polymerase2', 
 									 header = T, strings = F)
-pol3 <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/polymerase3', 
+pol3 <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/polymerase3', 
 									 header = T, strings = F)
 
 all_pol <- unique(c(poly1$ensembl_id, pol2$ensembl_id, pol3$ensembl_id))
@@ -60,14 +84,14 @@ gene_list[which(gene_list$gene_name %in% transporters), 2] <- 'transporters'
 
 
 ##Chromatin structure
-chromatin <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/chromatin_remodelling_histones.txt', header = T, strings = F)
+chromatin <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/chromatin_remodelling_histones.txt', header = T, strings = F)
 chromatin = chromatin$ensembl_id
 
 gene_list[which(gene_list$gene_name %in% chromatin), 2] <- 'chromatin structure'
 
 ##Annotate metabolism
 
-metabolism <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/analysis/aa_carbohidrate_metabolism', header = T, strings = F)
+metabolism <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/analysis/aa_carbohidrate_metabolism', header = T, strings = F)
 gene_list[which(gene_list$gene_name %in% metabolism$ensembl_id), 2] <- 'metabolism'
 
 
@@ -112,6 +136,7 @@ gene_list[which(gene_list$gene_name %in% metabolism$ensembl_id), 2] <- 'metaboli
 
 
 gene_list[is.na(gene_list$annotation),]$annotation <- 'Constant'
+write.table(gene_list, 'gene_annotation.txt', sep = '\t')
 
 ##Check which genes affect more the median of the data
 
@@ -148,21 +173,57 @@ for(i in 2:nrow(agg))
 ##Plot absolute data (coarse-graining = Sum)
 
 
-agg <- aggregate(abs_data, by = list(gene_list$annotation), sum, na.rm = T)
-agg[,2:13] <- apply(agg[,2:13],2, as.numeric)
+agg2 <- aggregate(abs_data, by = list(gene_list$annotation), sum, na.rm = T)
+agg2[,2:13] <- apply(agg2[,2:13],2, as.numeric)
 
 col = rainbow(7)
 
-agg[,2:13] <- agg[,2:13]/agg[,2]
+agg2[,2:13] <- agg2[,2:13]/agg2[,2]
 
-plot(y = log2(agg[1,2:13]), x = rep(0:11),type = 'l',  col = col[1], ylim = c(0,5))
-for(i in 2:nrow(agg))
+plot(y = log2(agg2[1,2:13]), x = rep(0:11),type = 'l',  col = col[1], ylim = c(0,5))
+for(i in 2:nrow(agg2))
 {
-	lines(y = log2(agg[i,2:13]), x = rep(0:11), col = col[i])
+	lines(y = log2(agg2[i,2:13]), x = rep(0:11), col = col[i])
 	
 }
 
-legend('topleft',legend = agg[,1], col = col, fill = col)
+legend('topleft',legend = agg2[,1], col = col, fill = col)
+
+m_agg <- melt(agg, var.name = Group.1)
+p <- ggplot(data = m_agg[m_agg$Group.1 == 'ribosome',], aes(x = variable, y = value, group = Group.1, colour = Group.1))
+p + geom_line(size = 1.5) + theme_bw() + ylim(-0.75,1)
+ggsave('Ribo_frac.wmf')
+
+
+p <- ggplot(data = m_agg[m_agg$Group.1 == 'ribosome' | m_agg$Group.1 == 'polymerases',], aes(x = variable, y = value, group = Group.1, colour = Group.1))
+p + geom_line(size = 1.5) + theme_bw() + ylim(-0.75,1)
+ggsave('Two_frac.wmf')
+
+
+m_agg2 <- melt(agg2, var.name = Group.1)
+p <- ggplot(data = m_agg2[m_agg2$Group.1 == 'ribosome',], aes(x = variable, y = value, group = Group.1, colour = Group.1))
+p + geom_line(size = 1.5) + theme_bw() + ylim(0,5)
+ggsave('Ribo_abs.wmf')
+
+
+p <- ggplot(data = m_agg2[m_agg2$Group.1 == 'ribosome' | m_agg2$Group.1 == 'polymerases',], aes(x = variable, y = value, group = Group.1, colour = Group.1))
+p + geom_line(size = 1.5) + theme_bw() + ylim(0,20)
+ggsave('two_abs.wmf')
+
+
+agg3 <- aggregate(abs_data, by = list(gene_list$annotation), sum, na.rm = T)
+row.names(agg3) <- agg3$Group.1
+agg3 <- agg3[,2:ncol(agg3)]
+agg3 <- t(agg3)
+agg3 <- as.data.frame(agg3)
+agg3$tot <- rowSums(agg3)
+agg3 <- agg3/agg3$tot
+agg3$time <- rep(0:11, each = 3)
+
+avg <- aggregate(agg3, by = list(agg3$time), mean)
+write.table(avg, 'mean_fractions_abs.txt', sep = '\t')
+sds <- aggregate(agg3, by = list(agg3$time), sd)
+write.table(sds, 'sd_fractions_abs.txt', sep = '\t')
 
 ##Check how median profiles are affected by different genes
 

@@ -4,7 +4,7 @@ rm(list = ls())
 source('C:/Users/am4613/Documents/GitHub/Proteomics/normalise_script.R')
 source('C:/Users/am4613/Documents/GitHub/Misc/oneDplot.v4.r')
 library('DESeq2')
-setwd('C:/Users/am4613/Documents/Summaries_as_timecourses/')
+setwd('C:/Users/am4613/OneDrive//Summaries_as_timecourses/')
 library('gtools')
 #Load FISH data
 fq_data <- read.delim('C:/Users/am4613/Documents/FISH_QUANT/Results_mature/Collated_results/results_FQ.txt', header = T, strings = F)
@@ -12,7 +12,7 @@ agg <- aggregate(Spots ~ Sample_Name*Acession, fq_data, mean)
 rrna <- 0.80
 
 #Load rna per cell 
-rna_per_cell <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/rna_starting_material.txt', strings = F)
+rna_per_cell <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/rna_starting_material.txt', strings = F)
 rna_per_cell$RNA_per_cell <- rna_per_cell$RNA_per_cell
 rna_per_cell$Starting_RNA <- rna_per_cell$Starting_material*rna_per_cell$volume
 rna_per_cell$cells <- rna_per_cell$Starting_RNA/rna_per_cell$RNA_per_cell
@@ -122,7 +122,7 @@ boxplot(log2(avg_cpc), outline = F)
 log_cpc <- avg_cpc[which(rowSums(avg_cpc) > 0),]
 
 oneDplot(df2list(log_cpc), log  = T, spread = 200, breaks = 50, ylim = c(-5,10), col = 'darkgreen')
-write.table(avg_cpc,'C:/Users/am4613/Documents/Summaries_as_timecourses/rna_cpc.txt', sep = '\t')
+write.table(avg_cpc,'C:/Users/am4613/OneDrive//Summaries_as_timecourses/rna_cpc.txt', sep = '\t')
 
 plot(log2(avg_cpc[,1]), log2(avg_cpc[,12]))
 nc_rna <- avg_cpc[grep(row.names(avg_cpc), pattern = 'SPNC'),]

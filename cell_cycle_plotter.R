@@ -3,8 +3,8 @@
 
 cell_cycle_plotter <- function(ids, average = T, ylim = c(-2,2))
 {
-	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/cell_cycle_data.rda')
-	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/exp_time.rda')
+	load('C:/Users/am4613/OneDrive - Imperial College London/ondedriveBACK/Summaries_as_timecourses/fission_timecourses/cell_cycle_data.rda')
+	load('C:/Users/am4613/OneDrive - Imperial College London/ondedriveBACK/Summaries_as_timecourses/fission_timecourses/exp_time.rda')
 	
 	
 	
@@ -49,9 +49,9 @@ cell_cycle_plotter <- function(ids, average = T, ylim = c(-2,2))
 
 cell_cycle_heatmap <- function(ids)
 {
-	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/cell_cycle_data.rda')
-	load('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/exp_time.rda')
-	peak_times <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/fission_timecourses/Peaktimes all genes.txt', header= T, strings = F)
+	load('C:/Users/am4613/OneDrive - Imperial College London/ondedriveBACK/Summaries_as_timecourses/fission_timecourses/cell_cycle_data.rda')
+	load('C:/Users/am4613/OneDrive - Imperial College London/ondedriveBACK/Summaries_as_timecourses/fission_timecourses/exp_time.rda')
+	peak_times <- read.delim('C:/Users/am4613/OneDrive - Imperial College London/ondedriveBACK/Summaries_as_timecourses/fission_timecourses/Peaktimes all genes.txt', header= T, strings = F)
 	library(gplots)
 	
 	rustici_elu <- merge(exp_list[[8]][,c(-1,-2)], exp_list[[9]][,c(-1,-2)], by = 'identifier', all = T)
@@ -65,7 +65,8 @@ cell_cycle_heatmap <- function(ids)
 	
 	test <- rustici_elu[which(ids %in% rustici_elu$identifier),]
 	ordered_test <- test[order(test$Peak),]
-	heatmap.2(as.matrix(na.omit(ordered_test[,2:61])), Colv = F, trace = 'none', col = col, labRow = ordered_test$identifier, Rowv = F)
+	ordered_test[is.na(ordered_test)] <- 0
+	heatmap.2(as.matrix(ordered_test[,2:61]), Colv = F, trace = 'none', col = col, labRow = ordered_test$identifier, Rowv = F)
 }
 
 

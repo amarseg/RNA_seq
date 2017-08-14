@@ -3,7 +3,7 @@ library('plyr')
 library('lattice')
 par(mfrow = c(1,1))
 
-probe_list <- read.delim('C:/Users/am4613/Documents/Summaries_as_timecourses/Probe_list.txt', header = T, strings = F)
+probe_list <- read.delim('C:/Users/am4613/OneDrive/Summaries_as_timecourses/Probe_list.txt', header = T, strings = F)
 
 setwd('C:/Users/am4613/Documents/FISH_QUANT/Results_mature/Collated_results/')
 
